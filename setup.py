@@ -16,5 +16,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         'aiohttp==3.7.4.post0',
+        'cryptography==36.0.1',
     ],
 )
