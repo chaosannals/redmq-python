@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin
 from aiohttp import ClientSession
+from .exception import RedMQRequestException
 from .crypt import random_text, encrypt256, decrypt256
 
 
@@ -55,13 +56,20 @@ class RedMQClient:
         '''
 
         key = random_text()
-        ekey = encrypt256(self.secret, key)
+        expired_at = datetime.now() + timedelta(minutes=1)
+        ekey = encrypt256(self.secret, {
+            'key': key,
+            'expired_at': expired_at.strftime('%Y-%m-%d %H:%M:%S'),
+        })
 
         s, hs, d = await self.request('/login', {
             'app': self.key,
             'key': key,
             'ekey': ekey
         })
+
+        if 200 > s or s >= 300:
+            raise RedMQRequestException(s, hs, d)
 
         data = decrypt256(self.secret, d.get('data'))
         self.token = bytes(data.get('token'), encoding='utf8')
